@@ -1,0 +1,42 @@
+{
+    agent any
+tools{
+    maven "maven3.8.6"
+    }
+    triggers {
+  pollSCM '*/5 * * * *'
+}
+
+stages {
+    //code from git hub
+    stage ('git hub code'){
+        steps{
+            git credentialsId: '70456892-b197-4061-b62a-bdd3f66b856c', url: 'https://github.com/sunny00000000/maven-web-application.git'
+        }
+    }
+    stage ('build'){
+        steps{
+           sh "mvn clean package" 
+        }
+    }
+    stage('sonarqube report'){
+        steps{
+            sh "mvn sonar:sonar"
+        }
+    }
+    stage('nexus report'){
+        steps{
+            sh "mvn deploy"
+        }
+    }
+    stage('tomcatupload'){
+        steps{
+            sshagent(['0df69c2e-31c4-42af-a23c-27eccbe92472']) {
+    // some block
+
+                sh "scp -o StrictHostkeyChecking=no target/maven-web-application.war ec2-user@3.88.108.105:/opt/apache-tomcat-9.0.64/webapps:"
+            }
+        }
+    }
+}  
+}
