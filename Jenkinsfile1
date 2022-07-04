@@ -1,21 +1,31 @@
-node
-{
-    def mavenHome = tool name: "maven3.8.6"
-stage ('checkout'){
-    git credentialsId: '70456892-b197-4061-b62a-bdd3f66b856c', url: 'https://github.com/sunny00000000/maven-web-application.git'
-}    
-stage ('build'){
-    sh "${mavenHome}/bin/mvn clean package"
+pipeline{
+    agent any
+tools{
+    maven "maven3.8.6"
+    }
+stages{
+    stage('code checkout'){
+        steps{
+            git credentialsId: '2b2ea0d3-687e-4450-a0ed-b611ab9cd847', url: 'https://github.com/MithunTechnologiesDevOps/maven-web-application.git'
+    }
+    }
+    stage('build'){
+        steps{
+                sh "mvn clean package"
+    }
+    }
+    stage ('docker build'){
+        steps{
+            //def dockerbuild = "docker build -t sunny00000000/maven-web-application:1 ."
+                sh "docker build -t sunny00000000/maven-web-application:1 ."
+        }
+    }
+    stage ('docker run'){
+        steps{
+            sshagent(['73c4667c-d02f-4cb0-b9fd-94a5c54d2348']) {
+                sh "ssh -o StrictHostKeyChecking=no ubuntu@172.31.94.166 docker run -d --name mavenwebapp -p 9090:8080 sunny00000000/maven-web-application:1"
 }
-stage ('sonar'){
-    sh "${mavenHome}/bin/mvn sonar:sonar"
-}
-stage ('nexus'){
-    sh "${mavenHome}/bin/mvn deploy"
-}
-stage ('tomcat deploy'){
-    sshagent(['0df69c2e-31c4-42af-a23c-27eccbe92472']) {
-    sh "scp -o StrictHostkeyChecking=no target/maven-web-application.war ec2-user@3.88.108.105:/opt/apache-tomcat-9.0.64/webapps:"
-}
-}
+        }
+    }
+    }
 }
