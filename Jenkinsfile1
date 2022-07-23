@@ -1,31 +1,44 @@
 pipeline{
-    agent any
+   agent any
 tools{
     maven "maven3.8.6"
-    }
+     }
 stages{
-    stage('code checkout'){
+    stage("environment variable"){
+        environment {
+            buildNumber = "BUILD_NuMBER"
+        }
         steps{
-            git credentialsId: '2b2ea0d3-687e-4450-a0ed-b611ab9cd847', url: 'https://github.com/MithunTechnologiesDevOps/maven-web-application.git'
-    }
-    }
-    stage('build'){
-        steps{
-                sh "mvn clean package"
-    }
-    }
-    stage ('docker build'){
-        steps{
-            //def dockerbuild = "docker build -t sunny00000000/maven-web-application:1 ."
-                sh "docker build -t sunny00000000/maven-web-application:1 ."
+            echo "BUILD_NuMBER = ${env.buildNumber}"
         }
     }
-    stage ('docker run'){
+    stage("get the code from github"){
         steps{
-            sshagent(['73c4667c-d02f-4cb0-b9fd-94a5c54d2348']) {
-                sh "ssh -o StrictHostKeyChecking=no ubuntu@172.31.94.166 docker run -d --name mavenwebapp -p 9090:8080 sunny00000000/maven-web-application:1"
+          git credentialsId: '7af5a31e-4991-41fe-888d-65b11501ebc5', url: 'https://github.com/dockersunny/maven-web-application.git'
+        }
+        }
+    stage("build the code"){
+       steps{
+          sh "mvn clean package"
+          }
+    }  
+    stage("docker image build "){
+        steps{
+        sh "docker build -t sunny00000000/maven-web-application:${env.buildNumber} ."
+    }
+    }
+    stage("docker push"){
+        steps{
+            sh "docker login -u sunny00000000 -p Sunny007@"
+            sh "docker push sunny00000000/maven-web-application:${env.buildnumber}"
+        }
+    }
+    stage("application deployment"){
+        steps{
+           sshagent(['d36fdb1d-9d9b-451a-91e8-440f286425fe']) {
+               sh "ssh -o StrictHostKeyChecking=no ubuntu@18.207.126.96 docker service create --name maven -p 8080:8080 --network mavenappbridge --replicas 3 sunny00000000/maven-web-application:${env.buildNumber}"
+} 
+        }
+    }
 }
-        }
-    }
-    }
 }
